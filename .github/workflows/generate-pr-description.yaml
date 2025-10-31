@@ -71,56 +71,57 @@ jobs:
             jira_link=""
           fi
           echo "JIRA_LINK=$jira_link" >> $GITHUB_ENV
-  
-  
-          echo "Generating description..."
-          prompt=$(cat <<'EOPROMPT'
-          You are a release documentation assistant.
-          The following are Conventional Commit messages from a pull request.
-          Generate a Markdown pull request description using these sections:
-
-          **Summary**
-          A one-sentence overview of what the PR does.
-
-          **What Changed**
-          Group changes under bullet points by type (feat, fix, refactor, chore, test, docs).
-
-          **Why**
-          Explain the reasoning or problem solved.
-
-          **Testing**
-          Suggest or describe how the changes were tested.
           
-          If a Jira link is provided below, include it in a final section:
-  
-          **Related Jira**
-          [<TICKET_KEY>](<JIRA_URL>)
-
-          Use concise British English and Markdown formatting.
-          EOPROMPT
-          )
           
-          if [ -n "$JIRA_LINK" ]; then
-            prompt="${prompt//$'\n'/$'\n'}\n\nJira ticket: $JIRA_LINK"
+          echo "🔹 Building prompt payload..."
+          # Combine everything into a single user message – works best for Mistral
+          payload=$(jq -n \
+          --arg model "meta-llama/llama-3-8b-instruct:free" \
+          --arg commits "$COMMITS" \
+          --arg jira "$jira_link" \
+          '{
+              model: $model,
+              messages: [
+                {
+                  "role": "user",
+                  "content":
+          "Generate a concise Markdown-formatted pull request description based on these Conventional Commit messages.\n\
+          Include sections: Summary, What Changed, Why, and Testing.\n\
+          If a Jira link is provided, include it as a final section titled **Related Jira**.\n\
+          Use British English and a professional tone.\n\n\
+          Commits:\n\($commits)\n\n\
+          Jira: \($jira)"
+                }
+              ],
+              max_tokens: 700
+            }')
+      
+          echo "🔹 Sending request to OpenRouter..."
+          echo "$payload" | jq '.'
+      
+          response=$(curl -s -w "\n%{http_code}" https://openrouter.ai/api/v1/chat/completions \
+          -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d "$payload")
+      
+          http_code=$(echo "$response" | tail -n1)
+          json=$(echo "$response" | sed '$d')
+      
+          if [ "$http_code" != "200" ]; then
+          echo "❌ API request failed with HTTP $http_code"
+          echo "$json"
+          exit 0
+          fi
+      
+          text=$(echo "$json" | jq -r '.choices[0].message.content // empty')
+      
+          if [ -z "$text" ]; then
+          echo "⚠️ No text returned from model."
+          echo "$json"
+          exit 0
           fi
 
-          response=$(curl -s https://openrouter.ai/api/v1/chat/completions \
-            -H "Authorization: Bearer $OPENROUTER_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"model\": \"mistralai/mistral-7b-instruct:free\",
-              \"messages\": [
-                {\"role\": \"system\", \"content\": \"$prompt\"},
-                {\"role\": \"user\", \"content\": \"$COMMITS\"}
-              ],
-              \"max_tokens\": 500
-            }")
-          
-          echo "---- API raw response ----"
-          echo "$response"
-          echo "---------------------------"
-  
-  
+          echo "🔹 Cleaning model output..."
           text=$(echo "$response" | jq -r '.choices[0].message.content')
           text=$(echo "$text" \
             | sed -E 's/<s>//g; s/<\/s>//g; s/\[\/?INST\]//g; s/\[\/?B_INST\]//g; s/<\|[^>]*\|>//g' \
