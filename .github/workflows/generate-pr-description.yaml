@@ -92,7 +92,7 @@ jobs:
           
           
           payload=$(jq -n \
-          --arg model "meta-llama/llama-3-8b-instruct:free" \
+          --arg model "mistralai/mistral-7b-instruct:free" \
           --arg content "$prompt" \
           '{model:$model,messages:[{"role":"user","content":$content}],max_tokens:700}')
   
