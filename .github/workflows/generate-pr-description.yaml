@@ -97,7 +97,9 @@ jobs:
             }")
 
           text=$(echo "$response" | jq -r '.choices[0].message.content')
-          text=$(echo "$text" | tr -d '\000-\011\013\014\016-\037' | sed 's/<[^>]*>//g; s/\[\/\?INST\]//g')
+          text=$(echo "$text" \
+            | sed -E 's/<s>//g; s/<\/s>//g; s/\[\/?INST\]//g; s/\[\/?B_INST\]//g; s/<\|[^>]*\|>//g' \
+            | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
 
           echo "DESCRIPTION<<EOF" >> $GITHUB_ENV
           echo "$text" >> $GITHUB_ENV
