@@ -84,15 +84,35 @@ jobs:
         
           echo "🔹 Building prompt payload..."
           prompt=$(cat <<'EOT'
-          Generate a concise Markdown-formatted pull request description based on these Conventional Commit messages.
-          Include sections: Summary, What Changed, Why, and Testing.
-          If a Jira link is provided, include it as a final section titled **Related Jira**.
-          Use British English and a professional tone.
-        
-          Commits:
+          You are a concise assistant that writes professional, Markdown-formatted pull request descriptions.
+          Follow this structure exactly:
+
+          ## Overview
+          Briefly describe what this PR does and why it matters (1–2 sentences).
+            
+          ## Changes
+          Summarise key changes as a bullet list, including Conventional Commit types where appropriate.
+            
+          ## Motivation
+          Explain the reason behind the changes (e.g. bug fix, refactor, feature enhancement).
+            
+          ## Implementation Notes
+          (Optional) Highlight any noteworthy design decisions, trade-offs, or compatibility impacts.
+            
+          ## Testing
+          Describe how the changes were verified (e.g. unit tests, manual testing).
+            
+          ## Deployment & Impact
+          (Optional) Mention migrations, infra impacts, or post-deploy steps.
+            
+          ## Links
+          Include related Jira tickets and other references.
+            
+          Write in British English with a clear, professional tone.
           EOT
           )
-          
+  
+          # Append commits and Jira link
           prompt="$prompt
           
           $messages
