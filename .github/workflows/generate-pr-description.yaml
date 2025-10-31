@@ -62,6 +62,17 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           COMMITS: ${{ env.COMMITS }}
         run: |
+          
+          branch_name="${{ github.head_ref }}"
+          ticket_key=$(echo "$branch_name" | grep -oE '[A-Z]+-[0-9]+' | head -1 || true)
+          if [ -n "$ticket_key" ]; then
+            jira_link="https://dsdmoj.atlassian.net/browse/$ticket_key"
+          else
+            jira_link=""
+          fi
+          echo "JIRA_LINK=$jira_link" >> $GITHUB_ENV
+  
+  
           echo "Generating description..."
           prompt=$(cat <<'EOPROMPT'
           You are a release documentation assistant.
@@ -79,6 +90,11 @@ jobs:
 
           **Testing**
           Suggest or describe how the changes were tested.
+          
+          If a Jira link is provided below, include it in a final section:
+  
+          **Related Jira**
+          [<TICKET_KEY>](<JIRA_URL>)
 
           Use concise British English and Markdown formatting.
           EOPROMPT
