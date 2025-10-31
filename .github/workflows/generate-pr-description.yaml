@@ -104,8 +104,8 @@ jobs:
           -H "Authorization: Bearer $OPENROUTER_API_KEY" \
           -H "Content-Type: application/json" \
           -d "$payload")
-      
-          http_code=$(echo "$response" | tail -n1)
+          
+          http_code=$(echo "$response" | tail -n1 | tr -d '\r')
           json=$(echo "$response" | sed '$d')
       
           if [ "$http_code" != "200" ]; then
