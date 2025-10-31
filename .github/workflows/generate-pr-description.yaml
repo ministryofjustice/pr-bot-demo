@@ -124,7 +124,11 @@ jobs:
           echo "$json"
           exit 0
           fi
-      
+          
+          echo "---- Raw model JSON ----"
+          echo "$json" | jq '.'
+  
+  
           text=$(echo "$json" | jq -r '.choices[0].message.content // empty')
       
           if [ -z "$text" ]; then
