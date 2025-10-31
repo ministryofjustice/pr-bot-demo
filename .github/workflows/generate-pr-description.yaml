@@ -60,8 +60,17 @@ jobs:
         if: steps.bodycheck.outputs.empty == 'true'
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          COMMITS: ${{ env.COMMITS }}
         run: |
+          
+          echo "🔹 Collecting commit messages..."
+          # Exclude merge commits and empty lines
+          messages=$(git log origin/${{ github.base_ref }}..HEAD --no-merges --pretty=format:"%s" | sed '/^$/d')
+          
+          {
+            echo "COMMITS<<EOF"
+            echo "$messages"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
           
           branch_name="${{ github.head_ref }}"
           ticket_key=$(echo "$branch_name" | grep -oE '[A-Z]+-[0-9]+' | head -1 || true)
@@ -86,7 +95,7 @@ jobs:
           
           prompt="$prompt
           
-          $COMMITS
+          $messages
           
           Jira: $jira_link"
           
