@@ -1,0 +1,94 @@
+name: Generate PR Description
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install GitHub CLI
+        run: sudo apt-get install -y gh jq
+
+      - name: Collect commit messages
+        id: commits
+        run: |
+          base=${{ github.event.pull_request.base.sha }}
+          head=${{ github.event.pull_request.head.sha }}
+          messages=$(git log --pretty=format:"%s%n%b" $base..$head)
+          echo "COMMITS<<EOF" >> $GITHUB_ENV
+          echo "$messages" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Check if PR body is empty
+        id: bodycheck
+        run: |
+          body=$(jq -r '.pull_request.body // ""' <<< '${{ toJson(github.event) }}')
+          if [ -z "$body" ] || [ "$body" = "null" ]; then
+            echo "empty=true" >> $GITHUB_OUTPUT
+          else
+            echo "empty=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate description via OpenRouter
+        if: steps.bodycheck.outputs.empty == 'true'
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          COMMITS: ${{ env.COMMITS }}
+        run: |
+          echo "Generating description..."
+          prompt=$(cat <<'EOPROMPT'
+          You are a release documentation assistant.
+          The following are Conventional Commit messages from a pull request.
+          Generate a Markdown pull request description using these sections:
+
+          **Summary**
+          A one-sentence overview of what the PR does.
+
+          **What Changed**
+          Group changes under bullet points by type (feat, fix, refactor, chore, test, docs).
+
+          **Why**
+          Explain the reasoning or problem solved.
+
+          **Testing**
+          Suggest or describe how the changes were tested.
+
+          Use concise British English and Markdown formatting.
+          EOPROMPT
+          )
+
+          response=$(curl -s https://openrouter.ai/api/v1/chat/completions \
+            -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"model\": \"mistralai/mistral-7b-instruct:free\",
+              \"messages\": [
+                {\"role\": \"system\", \"content\": \"$prompt\"},
+                {\"role\": \"user\", \"content\": \"$COMMITS\"}
+              ],
+              \"max_tokens\": 500
+            }")
+
+          text=$(echo "$response" | jq -r '.choices[0].message.content')
+
+          echo "DESCRIPTION<<EOF" >> $GITHUB_ENV
+          echo "$text" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Update PR body
+        if: steps.bodycheck.outputs.empty == 'true'
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --body "${{ env.DESCRIPTION }}"
