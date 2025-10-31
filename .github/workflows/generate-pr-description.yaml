@@ -139,9 +139,17 @@ jobs:
             | sed -E 's/<s>//g; s/<\/s>//g; s/\[\/?INST\]//g; s/\[\/?B_INST\]//g; s/<\|[^>]*\|>//g' \
             | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
 
-          echo "DESCRIPTION<<EOF" >> $GITHUB_ENV
-          echo "$text" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "✅ Generated text preview (first 200 chars):"
+          echo "$text" | head -c 200; echo
+          echo "Length: $(echo "$text" | wc -c)"
+  
+  
+          {
+            echo "DESCRIPTION<<EOF"
+            echo "$text"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
 
       - name: Update PR body
         if: steps.bodycheck.outputs.empty == 'true'
