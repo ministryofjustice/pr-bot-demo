@@ -74,28 +74,27 @@ jobs:
           
           
           echo "🔹 Building prompt payload..."
-          # Combine everything into a single user message – works best for Mistral
+          read -r -d '' prompt <<'EOT'
+          Generate a concise Markdown-formatted pull request description based on these Conventional Commit messages.
+          Include sections: Summary, What Changed, Why, and Testing.
+          If a Jira link is provided, include it as a final section titled **Related Jira**.
+          Use British English and a professional tone.
+        
+          Commits:
+          EOT
+          
+          prompt="$prompt
+          
+          $COMMITS
+        
+          Jira: $jira_link"
+          
           payload=$(jq -n \
           --arg model "meta-llama/llama-3-8b-instruct:free" \
-          --arg commits "$COMMITS" \
-          --arg jira "$jira_link" \
-          '{
-              model: $model,
-              messages: [
-                {
-                  "role": "user",
-                  "content":
-          "Generate a concise Markdown-formatted pull request description based on these Conventional Commit messages.\n\
-          Include sections: Summary, What Changed, Why, and Testing.\n\
-          If a Jira link is provided, include it as a final section titled **Related Jira**.\n\
-          Use British English and a professional tone.\n\n\
-          Commits:\n\($commits)\n\n\
-          Jira: \($jira)"
-                }
-              ],
-              max_tokens: 700
-            }')
-      
+          --arg content "$prompt" \
+          '{model:$model,messages:[{"role":"user","content":$content}],max_tokens:700}')
+  
+  
           echo "🔹 Sending request to OpenRouter..."
           echo "$payload" | jq '.'
       
