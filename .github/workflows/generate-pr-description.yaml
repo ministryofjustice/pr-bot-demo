@@ -72,9 +72,9 @@ jobs:
           fi
           echo "JIRA_LINK=$jira_link" >> $GITHUB_ENV
           
-          
+        
           echo "🔹 Building prompt payload..."
-          read -r -d '' prompt <<'EOT'
+          prompt=$(cat <<'EOT'
           Generate a concise Markdown-formatted pull request description based on these Conventional Commit messages.
           Include sections: Summary, What Changed, Why, and Testing.
           If a Jira link is provided, include it as a final section titled **Related Jira**.
@@ -82,12 +82,14 @@ jobs:
         
           Commits:
           EOT
+          )
           
           prompt="$prompt
           
           $COMMITS
-        
+          
           Jira: $jira_link"
+          
           
           payload=$(jq -n \
           --arg model "meta-llama/llama-3-8b-instruct:free" \
