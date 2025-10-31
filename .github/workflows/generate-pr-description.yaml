@@ -99,6 +99,10 @@ jobs:
           Use concise British English and Markdown formatting.
           EOPROMPT
           )
+          
+          if [ -n "$JIRA_LINK" ]; then
+            prompt="${prompt//$'\n'/$'\n'}\n\nJira ticket: $JIRA_LINK"
+          fi
 
           response=$(curl -s https://openrouter.ai/api/v1/chat/completions \
             -H "Authorization: Bearer $OPENROUTER_API_KEY" \
