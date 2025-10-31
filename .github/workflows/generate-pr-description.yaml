@@ -107,6 +107,17 @@ jobs:
           
           http_code=$(echo "$response" | tail -n1 | tr -d '\r')
           json=$(echo "$response" | sed '$d')
+          
+          echo "HTTP code: $http_code"
+          echo "First few chars of JSON:"
+          echo "$json" | head -c 100; echo
+          
+          # Validate JSON before parsing
+          if ! echo "$json" | jq -e . >/dev/null 2>&1; then
+            echo "❌ Invalid JSON from API:"
+            echo "$json"
+            exit 1
+          fi
       
           if [ "$http_code" != "200" ]; then
           echo "❌ API request failed with HTTP $http_code"
