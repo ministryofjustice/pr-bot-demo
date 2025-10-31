@@ -36,7 +36,7 @@ jobs:
       - name: Check if PR body is empty
         id: bodycheck
         run: |
-          branch=${GITHUB_REF#refs/heads/}
+          branch=${{ github.head_ref }}
           pr_number=$(gh pr list --head "$branch" --base main --json number -q '.[0].number')
       
           if [ -z "$pr_number" ]; then
