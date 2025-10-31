@@ -134,7 +134,7 @@ jobs:
           fi
 
           echo "🔹 Cleaning model output..."
-          text=$(echo "json" | jq -r '.choices[0].message.content')
+          text=$(echo "$json" | jq -r '.choices[0].message.content')
           text=$(echo "$text" \
             | sed -E 's/<s>//g; s/<\/s>//g; s/\[\/?INST\]//g; s/\[\/?B_INST\]//g; s/<\|[^>]*\|>//g' \
             | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
