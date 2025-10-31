@@ -115,7 +115,12 @@ jobs:
               ],
               \"max_tokens\": 500
             }")
-
+          
+          echo "---- API raw response ----"
+          echo "$response"
+          echo "---------------------------"
+  
+  
           text=$(echo "$response" | jq -r '.choices[0].message.content')
           text=$(echo "$text" \
             | sed -E 's/<s>//g; s/<\/s>//g; s/\[\/?INST\]//g; s/\[\/?B_INST\]//g; s/<\|[^>]*\|>//g' \
